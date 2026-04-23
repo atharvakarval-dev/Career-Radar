@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 import re
 from itertools import cycle
 
@@ -14,6 +15,22 @@ from requests.adapters import HTTPAdapter, Retry
 from jobspy.model import CompensationInterval, JobType, Site
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# P2: Rotating User-Agent list (Chrome 122-124, verified April 2025)
+ROTATING_USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_4_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Safari/605.1.15",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:125.0) Gecko/20100101 Firefox/125.0",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0",
+]
+
+def get_random_user_agent() -> str:
+    """Returns a random User-Agent from the rotating list."""
+    return random.choice(ROTATING_USER_AGENTS)
 
 
 def create_logger(name: str):
@@ -53,12 +70,14 @@ class RotatingProxySession:
 
 
 class RequestsRotating(RotatingProxySession, requests.Session):
-    def __init__(self, proxies=None, has_retry=False, delay=1, clear_cookies=False):
+    def __init__(self, proxies=None, has_retry=False, delay=1, clear_cookies=False, user_agent=None):
         RotatingProxySession.__init__(self, proxies=proxies)
         requests.Session.__init__(self)
         self.clear_cookies = clear_cookies
         self.allow_redirects = True
         self.setup_session(has_retry, delay)
+        # P2: Set User-Agent (use provided override or random from list)
+        self.headers["User-Agent"] = user_agent if user_agent else get_random_user_agent()
 
     def setup_session(self, has_retry, delay):
         if has_retry:
@@ -87,9 +106,11 @@ class RequestsRotating(RotatingProxySession, requests.Session):
 
 
 class TLSRotating(RotatingProxySession, tls_client.Session):
-    def __init__(self, proxies=None):
+    def __init__(self, proxies=None, user_agent=None):
         RotatingProxySession.__init__(self, proxies=proxies)
         tls_client.Session.__init__(self, random_tls_extension_order=True)
+        # P2: Set User-Agent (use provided override or random from list)
+        self.headers["User-Agent"] = user_agent if user_agent else get_random_user_agent()
 
     def execute_request(self, *args, **kwargs):
         if self.proxy_cycle:
@@ -111,19 +132,22 @@ def create_session(
     has_retry: bool = False,
     delay: int = 1,
     clear_cookies: bool = False,
+    user_agent: str | None = None,
 ) -> requests.Session:
     """
     Creates a requests session with optional tls, proxy, and retry settings.
+    :param user_agent: Optional User-Agent override. If not provided, a random UA is used.
     :return: A session object
     """
     if is_tls:
-        session = TLSRotating(proxies=proxies)
+        session = TLSRotating(proxies=proxies, user_agent=user_agent)
     else:
         session = RequestsRotating(
             proxies=proxies,
             has_retry=has_retry,
             delay=delay,
             clear_cookies=clear_cookies,
+            user_agent=user_agent,
         )
 
     if ca_cert:
@@ -341,6 +365,8 @@ desired_order = [
     "currency",
     "is_remote",
     "job_level",
+    "fresher_signals",
+    "fresher_score",
     "job_function",
     "listing_type",
     "emails",

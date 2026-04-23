@@ -49,14 +49,36 @@ class LinkedIn(Scraper):
     delay = 3
     band_delay = 4
     jobs_per_page = 25
+    min_delay_ms = 800  # P3: LinkedIn minimum delay enforcement
+
+    def _get_delay(self) -> float:
+        """
+        P3: Compute delay between requests in seconds.
+        Enforces minimum 800ms for LinkedIn regardless of input.
+        Supports jitter if tuple (min_ms, max_ms) is provided.
+        """
+        delay_config = self.scraper_input.delay_between_requests_ms if self.scraper_input else 1000
+
+        if isinstance(delay_config, tuple):
+            min_ms, max_ms = delay_config
+            delay_ms = random.uniform(min_ms, max_ms)
+        else:
+            delay_ms = delay_config
+
+        # Enforce LinkedIn minimum of 800ms
+        delay_ms = max(delay_ms, self.min_delay_ms)
+        return delay_ms / 1000.0  # Convert to seconds
 
     def __init__(
-        self, proxies: list[str] | str | None = None, ca_cert: str | None = None, user_agent: str | None = None
+        self, proxies: list[str] | str | None = None, ca_cert: str | None = None, user_agent: str | None = None,
+        linkedin_session_cookie: str | None = None
     ):
         """
         Initializes LinkedInScraper with the LinkedIn job search url
+        :param linkedin_session_cookie: Optional li_at session cookie for authenticated requests.
+            This is the user's own session cookie - not stored by the library.
         """
-        super().__init__(Site.LINKEDIN, proxies=proxies, ca_cert=ca_cert)
+        super().__init__(Site.LINKEDIN, proxies=proxies, ca_cert=ca_cert, user_agent=user_agent)
         self.session = create_session(
             proxies=self.proxies,
             ca_cert=ca_cert,
@@ -64,8 +86,15 @@ class LinkedIn(Scraper):
             has_retry=True,
             delay=5,
             clear_cookies=True,
+            user_agent=user_agent,
         )
         self.session.headers.update(headers)
+        # P4: Add additional headers to avoid blocking
+        self.session.headers["Accept-Language"] = "en-US,en;q=0.9"
+        self.session.headers["Referer"] = "https://www.linkedin.com/"
+        # P4: Inject session cookie if provided
+        if linkedin_session_cookie:
+            self.session.cookies.set("li_at", linkedin_session_cookie)
         self.scraper_input = None
         self.country = "worldwide"
         self.job_url_direct_regex = re.compile(r'(?<=\?url=)[^"]+')
@@ -115,28 +144,37 @@ class LinkedIn(Scraper):
                 params["f_TPR"] = f"r{seconds_old}"
 
             params = {k: v for k, v in params.items() if v is not None}
-            try:
-                response = self.session.get(
-                    f"{self.base_url}/jobs-guest/jobs/api/seeMoreJobPostings/search?",
-                    params=params,
-                    timeout=10,
-                )
-                if response.status_code not in range(200, 400):
+            # P4: Exponential backoff on 429 (max 3 retries)
+            max_retries = 3
+            base_delay = self._get_delay()
+            for attempt in range(max_retries):
+                try:
+                    response = self.session.get(
+                        f"{self.base_url}/jobs-guest/jobs/api/seeMoreJobPostings/search?",
+                        params=params,
+                        timeout=10,
+                    )
                     if response.status_code == 429:
-                        err = (
-                            f"429 Response - Blocked by LinkedIn for too many requests"
-                        )
-                    else:
+                        if attempt < max_retries - 1:
+                            wait_time = (2 ** attempt) * base_delay
+                            log.warning(f"LinkedIn 429 - backing off for {wait_time:.1f}s (attempt {attempt + 1}/{max_retries})")
+                            time.sleep(wait_time)
+                            continue
+                        else:
+                            log.error("LinkedIn 429 - Max retries exceeded")
+                            return JobResponse(jobs=job_list)
+                    if response.status_code not in range(200, 400):
                         err = f"LinkedIn response status code {response.status_code}"
                         err += f" - {response.text}"
-                    log.error(err)
+                        log.error(err)
+                        return JobResponse(jobs=job_list)
+                    break  # Success - exit retry loop
+                except Exception as e:
+                    if "Proxy responded with" in str(e):
+                        log.error(f"LinkedIn: Bad proxy")
+                    else:
+                        log.error(f"LinkedIn: {str(e)}")
                     return JobResponse(jobs=job_list)
-            except Exception as e:
-                if "Proxy responded with" in str(e):
-                    log.error(f"LinkedIn: Bad proxy")
-                else:
-                    log.error(f"LinkedIn: {str(e)}")
-                return JobResponse(jobs=job_list)
 
             soup = BeautifulSoup(response.text, "html.parser")
             job_cards = soup.find_all("div", class_="base-search-card")
@@ -164,7 +202,9 @@ class LinkedIn(Scraper):
                         raise LinkedInException(str(e))
 
             if continue_search():
-                time.sleep(random.uniform(self.delay, self.delay + self.band_delay))
+                # P3: Use configurable delay instead of hardcoded
+                sleep_time = self._get_delay()
+                time.sleep(sleep_time)
                 start += len(job_cards)
 
         job_list = job_list[: scraper_input.results_wanted]

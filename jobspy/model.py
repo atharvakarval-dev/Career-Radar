@@ -330,6 +330,10 @@ class ScraperInput(BaseModel):
     results_wanted: int = 15
     hours_old: int | None = None
 
+    # P3: Configurable delay between requests (milliseconds)
+    # Accept int for fixed delay or tuple (min_ms, max_ms) for jitter
+    delay_between_requests_ms: int | tuple[int, int] = 1000
+
 
 class Scraper(ABC):
     def __init__(

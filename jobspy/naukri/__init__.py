@@ -38,6 +38,11 @@ from jobspy.util import (
 log = create_logger("Naukri")
 
 class Naukri(Scraper):
+    # P7 TODO: Endpoint health-check - last verified 2025-04-24
+    # Naukri frequently rotates its internal API paths.
+    # If this endpoint returns 4xx/5xx or times out, inspect XHR on:
+    # https://www.naukri.com/jobs-in-india?k=software+engineer
+    # and update base_url accordingly.
     base_url = "https://www.naukri.com/jobapi/v3/search"
     delay = 3
     band_delay = 4

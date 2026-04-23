@@ -6,6 +6,21 @@ This module contains the set of Scrapers' exceptions.
 """
 
 
+import warnings
+
+
+class ScraperWarning(UserWarning):
+    """Warning emitted when a scraper returns fewer results than requested, likely due to rate limiting."""
+    pass
+
+
+class ScraperUnavailableError(Exception):
+    """Exception raised when a scraper's endpoint is unavailable or needs update."""
+    def __init__(self, message=None, site=None):
+        self.site = site
+        super().__init__(message or f"Scraper for {site} is currently unavailable. Endpoint may need update.")
+
+
 class LinkedInException(Exception):
     def __init__(self, message=None):
         super().__init__(message or "An error occurred with LinkedIn")
