@@ -54,7 +54,7 @@ def build_smart_queries(search_term: str) -> list[str]:
         if normalized and normalized.lower() not in seen:
             seen.add(normalized.lower())
             unique_queries.append(normalized)
-    return unique_queries[:20]
+    return unique_queries[:50]
 
 # Set page config
 st.set_page_config(
@@ -211,9 +211,9 @@ with st.sidebar:
     
     col3, col4 = st.columns(2)
     with col3:
-        results_wanted = st.number_input("Results Wanted", min_value=1, max_value=1000, value=50)
+        results_wanted = st.number_input("Results Wanted", min_value=1, max_value=1000, value=150)
     with col4:
-        hours_old = st.number_input("Hours Old", min_value=1, max_value=720, value=72)
+        hours_old = st.number_input("Hours Old", min_value=1, max_value=720, value=168)
         
     col5, col6 = st.columns(2)
     with col5:
@@ -239,7 +239,7 @@ if start_scrape:
                     smart_queries = build_smart_queries(search_term)
                     preferred_days = max(1, int(math.ceil(hours_old / 24))) if hours_old else 7
                     jobs = scrape_smart_fresher_jobs(
-                        top_n_combinations=max(10, len(smart_queries)) if smart_queries else 10,
+                        top_n_combinations=max(50, len(smart_queries)) if smart_queries else 50,
                         location=location,
                         site_rotation=sites,
                         search_combinations=smart_queries if smart_queries else None,

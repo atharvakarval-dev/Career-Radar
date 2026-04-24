@@ -17,8 +17,8 @@ import pandas as pd
 # NEGATIVE PATTERNS - Jobs matching these are dropped
 # =============================================================================
 NEGATIVE_PATTERNS = [
-    re.compile(r"\b[2-9]\+?\s*years?\s*(of\s*)?(experience|exp)\b", re.IGNORECASE),
-    re.compile(r"\bminimum\s+[1-9]\s+years?\b", re.IGNORECASE),
+    re.compile(r"\b[3-9]\+?\s*years?\s*(of\s*)?(experience|exp)\b", re.IGNORECASE),
+    re.compile(r"\bminimum\s+[3-9]\s+years?\b", re.IGNORECASE),
     re.compile(r"\bsenior\b", re.IGNORECASE),
     re.compile(r"\bsr\.\b", re.IGNORECASE),
     re.compile(r"\blead\b", re.IGNORECASE),
@@ -53,6 +53,8 @@ ROLE_NEGATIVE_PATTERNS = [
 # =============================================================================
 POSITIVE_PATTERNS = [
     re.compile(r"\b0[\s\-]?1\s+years?\b", re.IGNORECASE),
+    re.compile(r"\b0[\s\-]?2\s+years?\b", re.IGNORECASE),
+    re.compile(r"\b1[\s\-]?2\s+years?\b", re.IGNORECASE),
     re.compile(r"\bfreshers?\s+welcome\b", re.IGNORECASE),
     re.compile(r"\bno\s+experience\s+required\b", re.IGNORECASE),
     re.compile(r"\bcampus\s+hir(ing|e)\b", re.IGNORECASE),

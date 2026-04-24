@@ -710,16 +710,19 @@ def scrape_smart_fresher_jobs(
     sites = [_normalize_site(site) for site in (site_rotation or DEFAULT_SITE_ROTATION)]
 
     if search_combinations:
-        combo_site_cycle = cycle(sites)
-        combinations = [
-            SearchCombination(
-                combo_id=f"C{idx + 1}",
-                query=query,
-                site=next(combo_site_cycle),
-                location=location,
-            )
-            for idx, query in enumerate(search_combinations)
-        ]
+        combinations = []
+        combo_idx = 1
+        for query in search_combinations:
+            for site in sites:
+                combinations.append(
+                    SearchCombination(
+                        combo_id=f"C{combo_idx}",
+                        query=query,
+                        site=site,
+                        location=location,
+                    )
+                )
+                combo_idx += 1
     else:
         combinations = generate_search_combinations(
             top_n=top_n_combinations,
