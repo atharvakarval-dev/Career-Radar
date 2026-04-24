@@ -4,11 +4,18 @@ from datetime import datetime
 import os
 import sys
 import re
+from pathlib import Path
 
-# Add parent directory to path so career_radar can be imported
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add the directory containing app.py to sys.path
+current_dir = Path(__file__).parent.absolute()
+if str(current_dir) not in sys.path:
+    sys.path.insert(0, str(current_dir))
 
-from career_radar import scrape_jobs, scrape_smart_fresher_jobs, format_hunt_results
+try:
+    from career_radar import scrape_jobs, scrape_smart_fresher_jobs, format_hunt_results
+except ImportError as e:
+    st.error(f"Failed to import CareerRadar modules: {e}")
+    st.stop()
 
 # Set page config
 st.set_page_config(
