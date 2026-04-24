@@ -6,3 +6,4 @@ tqdm==4.67.1
 fake-useragent==2.2.0
 PyYAML==6.0.2
 APScheduler==3.11.0
+streamlit>=1.33.0
