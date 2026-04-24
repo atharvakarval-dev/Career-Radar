@@ -12,7 +12,6 @@ from career_radar.glassdoor import Glassdoor
 from career_radar.google import Google
 from career_radar.indeed import Indeed
 from career_radar.linkedin import LinkedIn
-from career_radar.naukri import Naukri
 from career_radar.internshala import Internshala
 from career_radar.foundit import Foundit
 from career_radar.shine import Shine
@@ -189,7 +188,6 @@ def scrape_jobs(
         Site.GLASSDOOR: Glassdoor,
         Site.GOOGLE: Google,
         Site.BAYT: BaytScraper,
-        Site.NAUKRI: Naukri,
         Site.BDJOBS: BDJobs,
         Site.INTERNSHALA: Internshala,
         Site.FOUNDIT: Foundit,
@@ -224,9 +222,6 @@ def scrape_jobs(
             location = f"{location}, India"
         if google_search_term and "in India" not in google_search_term:
             processed_google_search_term = f"{google_search_term} in India"
-        # Add naukri to sites if not already included
-        if Site.NAUKRI not in site_types:
-            site_types.append(Site.NAUKRI)
 
     scraper_input = ScraperInput(
         site_type=site_types,
@@ -371,15 +366,6 @@ def scrape_jobs(
                 else None
             )
 
-            #naukri-specific fields
-            job_data["skills"] = (
-                ", ".join(job_data["skills"]) if job_data["skills"] else None
-            )
-            job_data["experience_range"] = job_data.get("experience_range")
-            job_data["company_rating"] = job_data.get("company_rating")
-            job_data["company_reviews_count"] = job_data.get("company_reviews_count")
-            job_data["vacancy_count"] = job_data.get("vacancy_count")
-            job_data["work_from_home_type"] = job_data.get("work_from_home_type")
 
             # internshala-specific fields
             job_data["is_internship"] = job_data.get("is_internship")

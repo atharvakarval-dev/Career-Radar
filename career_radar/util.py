@@ -108,7 +108,7 @@ class RequestsRotating(RotatingProxySession, requests.Session):
 class TLSRotating(RotatingProxySession, tls_client.Session):
     def __init__(self, proxies=None, user_agent=None):
         RotatingProxySession.__init__(self, proxies=proxies)
-        tls_client.Session.__init__(self, random_tls_extension_order=True)
+        tls_client.Session.__init__(self, random_tls_extension_order=True, client_identifier="chrome_120")
         # P2: Set User-Agent (use provided override or random from list)
         self.headers["User-Agent"] = user_agent if user_agent else get_random_user_agent()
 

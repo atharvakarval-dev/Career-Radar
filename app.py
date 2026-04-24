@@ -221,7 +221,7 @@ with st.sidebar:
     with col6:
         is_remote = st.checkbox("Remote Only", value=False)
         
-    all_sites = ["indeed", "linkedin", "glassdoor", "zip_recruiter", "google", "naukri", "internshala", "foundit", "shine", "timesjobs"]
+    all_sites = ["indeed", "linkedin", "glassdoor", "zip_recruiter", "google", "internshala", "foundit", "shine", "timesjobs"]
     sites = st.multiselect("Job Sites", all_sites, default=["indeed", "linkedin"])
     
     start_scrape = st.button("🚀 Start Scraping", use_container_width=True)
